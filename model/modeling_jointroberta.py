@@ -1,17 +1,20 @@
 import torch
 import torch.nn as nn
-from transformers import BertPreTrainedModel, BertModel, BertConfig
+from transformers import RobertaPreTrainedModel, RobertaModel, RobertaConfig
 from torchcrf import CRF
 from .module import IntentClassifier, SlotClassifier
 
 
-class JointBERT(BertPreTrainedModel):
+class JointRoberta(RobertaPreTrainedModel):
     def __init__(self, config, args, intent_label_lst, slot_label_lst):
-        super(JointBERT, self).__init__(config)
+        super(JointRoberta, self).__init__(config)
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print("hi")
+        print(device)
         self.args = args
         self.num_intent_labels = len(intent_label_lst)
         self.num_slot_labels = len(slot_label_lst)
-        self.bert = BertModel(config=config)  # Load pretrained bert
+        self.bert = RobertaModel(config=config)  # Load pretrained bert
 
         self.intent_classifier = IntentClassifier(config.hidden_size, self.num_intent_labels, args.dropout_rate)
         self.slot_classifier = SlotClassifier(config.hidden_size, self.num_slot_labels, args.dropout_rate)

@@ -2,25 +2,33 @@ import os
 import random
 import logging
 
+import numpy
 import torch
 import numpy as np
 from seqeval.metrics import precision_score, recall_score, f1_score
 
-from transformers import BertConfig, DistilBertConfig, AlbertConfig
-from transformers import BertTokenizer, DistilBertTokenizer, AlbertTokenizer
+from transformers import BertConfig, DistilBertConfig, AlbertConfig, GPT2Config, RobertaConfig
+from transformers import BertTokenizer, DistilBertTokenizer, AlbertTokenizer, GPT2Tokenizer, RobertaTokenizer
 
-from model import JointBERT, JointDistilBERT, JointAlbert
+from model import JointBERT, JointDistilBERT, JointAlbert, JointGPT2, JointRoberta
+
+from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import MultiLabelBinarizer, normalize
 
 MODEL_CLASSES = {
     'bert': (BertConfig, JointBERT, BertTokenizer),
     'distilbert': (DistilBertConfig, JointDistilBERT, DistilBertTokenizer),
-    'albert': (AlbertConfig, JointAlbert, AlbertTokenizer)
+    'albert': (AlbertConfig, JointAlbert, AlbertTokenizer),
+    'gpt2': (GPT2Config, JointGPT2, GPT2Tokenizer),
+    'roberta': (RobertaConfig, JointRoberta, RobertaTokenizer)
 }
 
 MODEL_PATH_MAP = {
     'bert': 'bert-base-uncased',
     'distilbert': 'distilbert-base-uncased',
-    'albert': 'albert-xxlarge-v1'
+    'albert': 'albert-xxlarge-v1',
+    'gpt2': 'gpt2',
+    'roberta': 'roberta-base'
 }
 
 
@@ -57,11 +65,34 @@ def compute_metrics(intent_preds, intent_labels, slot_preds, slot_labels):
     slot_result = get_slot_metrics(slot_preds, slot_labels)
     sementic_result = get_sentence_frame_acc(intent_preds, intent_labels, slot_preds, slot_labels)
 
+    mlb = MultiLabelBinarizer()
+    labels = ['UNK', 'E', 'I', 'A', 'O']
+    intent_cm = confusion_matrix(y_true=intent_labels, y_pred=intent_preds, normalize='true')
+
+    #labels = ['PAD', 'UNK', 'SEPA', 'T', 'S', 'C', 'D', 'P', 'O']
+    #slot_cm = get_cm(slot_labels, slot_preds, labels)
+
+    print(intent_cm)
+    print()
+
     results.update(intent_result)
     results.update(slot_result)
     results.update(sementic_result)
+    results.update({"intent_cm": intent_cm})
 
     return results
+
+
+def get_cm(actual, predicted, labels):
+    actual = numpy.array(actual)
+    predicted = numpy.array(predicted)
+
+    cm = numpy.zeros((len(labels), len(labels)))
+    for a, p in zip(actual, predicted):
+        cm[a][p] += 1
+
+    #cm = normalize(cm, axis=1, norm='l1')
+    return cm
 
 
 def get_slot_metrics(preds, labels):

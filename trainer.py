@@ -2,12 +2,15 @@ import os
 import logging
 from tqdm import tqdm, trange
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from transformers import BertConfig, AdamW, get_linear_schedule_with_warmup
 
 from utils import MODEL_CLASSES, compute_metrics, get_intent_labels, get_slot_labels
+
+from sklearn.metrics import ConfusionMatrixDisplay
 
 logger = logging.getLogger(__name__)
 
@@ -209,6 +212,15 @@ class Trainer(object):
         logger.info("***** Eval results *****")
         for key in sorted(results.keys()):
             logger.info("  %s = %s", key, str(results[key]))
+
+        if mode == 'test':
+            disp = ConfusionMatrixDisplay(confusion_matrix=results['intent_cm'])
+            disp.plot()
+
+            #disp = ConfusionMatrixDisplay(confusion_matrix=results['slot_cm'])
+            #disp.plot()
+
+            plt.show()
 
         return results
 
